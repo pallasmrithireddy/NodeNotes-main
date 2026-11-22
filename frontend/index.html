@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NodeNotes - No DB</title>
+    <style>
+        :root {
+            --bg-canvas: #F6F6F8;
+            --bg-card: #FFFFFF;
+            --bg-pill: #EBEBF0;
+            --text-primary: #1C1C1E;
+            --text-secondary: #8E8E93;
+            --text-tertiary: #AEAEB2;
+            --accent-orange: #FF6B00;
+            --accent-orange-hover: #E56000;
+            --danger-red: #FF3B30;
+            --border-subtle: rgba(0, 0, 0, 0.05);
+            --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.03);
+            --shadow-fab: 0 8px 24px rgba(255, 107, 0, 0.35);
+            --radius-card: 22px;
+            --radius-pill: 100px;
+            --font-sans: -apple-system, BlinkMacSystemFont, "SamsungOne", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 960px;
+            padding: 0 20px 100px;
+            position: relative;
+        }
+
+        /* One UI Collapsible Header Area */
+        .one-ui-header {
+            padding: 56px 4px 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .one-ui-header h1 {
+            font-size: 36px;
+            font-weight: 400;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .one-ui-header .subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* Top Action Bar */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: rgba(246, 246, 248, 0.88);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            padding: 12px 0;
+        }
+
+        .search-pill {
+            flex: 1;
+            max-width: 420px;
+            background: var(--bg-pill);
+            border-radius: var(--radius-pill);
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            gap: 10px;
+            transition: background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .search-pill:focus-within {
+            background: var(--bg-card);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .search-pill svg {
+            width: 18px;
+            height: 18px;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+
+        .search-pill input {
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 15px;
+            color: var(--text-primary);
+            width: 100%;
+            font-family: inherit;
+        }
+
+        .search-pill input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .icon-btn:hover {
+            background: var(--bg-pill);
+        }
+
+        .icon-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            padding: 6px 12px;
+            border-radius: var(--radius-pill);
+            box-shadow: var(--shadow-card);
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #34C759;
+        }
+
+        .status-dot.offline {
+            background: var(--danger-red);
+        }
+
+        /* Notes Grid (Samsung Notes Card Layout) */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 16px;
+        }
+
+        .notes-grid.list-view {
+            grid-template-columns: 1fr;
+        }
+
+        .note-item {
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: relative;
+        }
+
+        .note-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .note-item:active {
+            transform: scale(0.98);
+        }
+
+        .note-card-surface {
+            background: var(--bg-card);
+            border-radius: var(--radius-card);
+            padding: 20px 18px;
+            height: 210px;
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--border-subtle);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .notes-grid.list-view .note-card-surface {
+            height: auto;
+            min-height: 84px;
+            flex-direction: row;
+            align-items: center;
+            padding: 18px 22px;
+        }
+
+        .note-preview-text {
+            font-size: 15px;
+            line-height: 1.55;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-break: break-word;
+            display: -webkit-box;
+            -webkit-line-clamp: 6;
+            line-clamp: 6;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .notes-grid.list-view .note-preview-text {
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            padding-right: 40px;
+        }
+
+        .note-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+        }
+
+        .note-id-chip {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent-orange);
+            background: rgba(255, 107, 0, 0.08);
+            padding: 3px 9px;
+            border-radius: 8px;
+        }
+
+        .delete-card-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 59, 48, 0.08);
+            color: var(--danger-red);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s ease, background 0.15s ease;
+        }
+
+        .note-item:hover .delete-card-btn {
+            opacity: 1;
+        }
+
+        @media (hover: none) {
+            .delete-card-btn {
+                opacity: 1;
+            }
+        }
+
+        .delete-card-btn:hover {
+            background: rgba(255, 59, 48, 0.16);
+        }
+
+        .note-meta {
+            text-align: center;
+            margin-top: 10px;
+            padding: 0 6px;
+        }
+
+        .notes-grid.list-view .note-meta {
+            display: none;
+        }
+
+        .note-title-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 2px;
+        }
+
+        .note-date-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Empty State */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        /* Samsung Notes Floating Action Button */
+        .fab-create {
+            position: fixed;
+            bottom: 32px;
+            right: max(28px, calc(50% - 450px));
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            color: var(--accent-orange);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
+            z-index: 30;
+        }
+
+        .fab-create:hover {
+            transform: scale(1.06);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+        }
+
+        .fab-create:active {
+            transform: scale(0.95);
+        }
+
+        .fab-create svg {
+            width: 26px;
+            height: 26px;
+        }
+
+        /* Full-screen / Modal Editor (Samsung Notes Page View) */
+        .editor-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.28);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .editor-overlay.active {
+            display: flex;
+            animation: fadeIn 0.18s ease-out;
+        }
+
+        .editor-sheet {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 680px;
+            height: 82vh;
+            max-height: 760px;
+            border-radius: 28px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .editor-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .editor-topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .editor-mode-tag {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .editor-topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-pill {
+            border: none;
+            border-radius: var(--radius-pill);
+            padding: 9px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: opacity 0.15s ease, transform 0.1s ease;
+        }
+
+        .btn-pill:active {
+            transform: scale(0.97);
+        }
+
+        .btn-delete {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--danger-red);
+        }
+
+        .btn-save {
+            background: var(--accent-orange);
+            color: #FFFFFF;
+        }
+
+        .btn-save:hover {
+            background: var(--accent-orange-hover);
+        }
+
+        .editor-body {
+            flex: 1;
+            padding: 28px 32px;
+            display: flex;
+            flex-direction: column;
+            background-image: linear-gradient(to bottom, transparent 31px, rgba(0, 0, 0, 0.03) 32px);
+            background-size: 100% 32px;
+            background-position: 0 26px;
+        }
+
+        .editor-textarea {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            resize: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 17px;
+            line-height: 32px;
+            color: var(--text-primary);
+        }
+
+        .editor-textarea::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 36px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #2C2C2E;
+            color: #FFFFFF;
+            padding: 11px 20px;
+            border-radius: var(--radius-pill);
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 200;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @media (max-width: 600px) {
+            .one-ui-header {
+                padding: 40px 4px 20px;
+            }
+            .one-ui-header h1 {
+                font-size: 30px;
+            }
+            .notes-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            .note-card-surface {
+                height: 185px;
+                padding: 16px 14px;
+            }
+            .editor-overlay {
+                padding: 0;
+            }
+            .editor-sheet {
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+            .editor-body {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-shell">
+        <!-- One UI Large Title Header -->
+        <header class="one-ui-header">
+            <h1>All notes</h1>
+            <p class="subtitle" id="noteCountLabel">Loading notes...</p>
+        </header>
+
+        <!-- Sticky Search & View Controls -->
+        <div class="toolbar">
+            <div class="search-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="searchInput" placeholder="Search notes" autocomplete="off">
+            </div>
+
+            <div class="toolbar-actions">
+                <div class="status-badge" title="Express Backend Status">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">localhost:3000</span>
+                </div>
+                <button class="icon-btn" id="toggleViewBtn" title="Switch Grid / List View" aria-label="Switch View">
+                    <svg id="viewIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Notes Grid -->
+        <main class="notes-grid" id="notesGrid"></main>
+    </div>
+
+    <!-- Samsung Notes Style Floating Action Button -->
+    <button class="fab-create" id="fabCreate" title="Create note" aria-label="Create note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+        </svg>
+    </button>
+
+    <!-- Note Editor Modal -->
+    <div class="editor-overlay" id="editorOverlay">
+        <div class="editor-sheet" role="dialog" aria-modal="true">
+            <div class="editor-topbar">
+                <div class="editor-topbar-left">
+                    <button class="icon-btn" id="closeEditorBtn" title="Back" aria-label="Close editor">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <span class="editor-mode-tag" id="editorModeTag">New note</span>
+                </div>
+                <div class="editor-topbar-right">
+                    <button class="btn-pill btn-delete" id="modalDeleteBtn" style="display: none;">Delete</button>
+                    <button class="btn-pill btn-save" id="saveNoteBtn">Save</button>
+                </div>
+            </div>
+            <div class="editor-body">
+                <textarea class="editor-textarea" id="noteTextarea" placeholder="Start typing your note..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- One UI Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API_URL = 'https://nodenotes-backend.vercel.app';
+
+        let allNotes = [];
+        let activeNoteId = null;
+        let isListView = false;
+
+        // DOM Elements
+        const notesGrid = document.getElementById('notesGrid');
+        const noteCountLabel = document.getElementById('noteCountLabel');
+        const searchInput = document.getElementById('searchInput');
+        const toggleViewBtn = document.getElementById('toggleViewBtn');
+        const fabCreate = document.getElementById('fabCreate');
+        const editorOverlay = document.getElementById('editorOverlay');
+        const closeEditorBtn = document.getElementById('closeEditorBtn');
+        const editorModeTag = document.getElementById('editorModeTag');
+        const noteTextarea = document.getElementById('noteTextarea');
+        const saveNoteBtn = document.getElementById('saveNoteBtn');
+        const modalDeleteBtn = document.getElementById('modalDeleteBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const toast = document.getElementById('toast');
+
+        let toastTimer;
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2400);
+        }
+
+        function setConnectionStatus(online) {
+            if (online) {
+                statusDot.classList.remove('offline');
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.classList.add('offline');
+                statusText.textContent = 'Server offline';
+            }
+        }
+
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function extractTitle(noteText) {
+            const firstLine = (noteText || '').trim().split('\n')[0];
+            return firstLine || 'Text note';
+        }
+
+        function formatToday() {
+            return new Date().toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // READ (GET /)
+        async function fetchNotes() {
+            try {
+                const response = await fetch(API_URL, { method: 'GET' });
+                if (!response.ok) throw new Error('Failed to fetch notes');
+                allNotes = await response.json();
+                setConnectionStatus(true);
+                renderNotes();
+            } catch (error) {
+                console.error('Error fetching notes:', error);
+                setConnectionStatus(false);
+                noteCountLabel.textContent = 'Cannot reach https://nodenotes-backend.vercel.app';
+                notesGrid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Backend not reachable</h3>
+                        <p>Make sure your Express server is running on port 3000.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderNotes() {
+            const query = searchInput.value.trim().toLowerCase();
+            const filtered = allNotes.filter(item =>
+                item.note.toLowerCase().includes(query)
+            );
+
+            const count = filtered.length;
+            noteCountLabel.textContent = `${count} ${count === 1 ? 'note' : 'notes'}`;
+
+            if (filtered.length === 0) {
+                notesGrid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>${query ? 'No matching notes' : 'No notes'}</h3>
+                        <p>${query ? 'Try a different search keyword.' : 'Tap the pen icon below to create a note.'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            notesGrid.innerHTML = filtered.map(item => {
+                const safeText = escapeHTML(item.note);
+                const safeTitle = escapeHTML(extractTitle(item.note));
+                return `
+                    <article class="note-item" data-id="${item.id}">
+                        <div class="note-card-surface">
+                            <div class="note-preview-text">${safeText}</div>
+                            <div class="note-card-footer">
+                                <span class="note-id-chip">#${item.id}</span>
+                                <button class="delete-card-btn" data-delete-id="${item.id}" title="Delete note" aria-label="Delete note">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="note-meta">
+                            <div class="note-title-label">${safeTitle}</div>
+                            <div class="note-date-label">${formatToday()}</div>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+        }
+
+        // Open Editor (Create or Edit)
+        function openEditor(noteObj = null) {
+            if (noteObj) {
+                activeNoteId = noteObj.id;
+                editorModeTag.textContent = `Note #${noteObj.id}`;
+                noteTextarea.value = noteObj.note;
+                modalDeleteBtn.style.display = 'inline-block';
+            } else {
+                activeNoteId = null;
+                editorModeTag.textContent = 'New note';
+                noteTextarea.value = '';
+                modalDeleteBtn.style.display = 'none';
+            }
+            editorOverlay.classList.add('active');
+            setTimeout(() => noteTextarea.focus(), 50);
+        }
+
+        function closeEditor() {
+            editorOverlay.classList.remove('active');
+            activeNoteId = null;
+            noteTextarea.value = '';
+        }
+
+        // CREATE (POST /) or UPDATE (PUT /)
+        async function saveNote() {
+            const text = noteTextarea.value.trim();
+            if (!text) {
+                showToast('Write something before saving');
+                return;
+            }
+
+            try {
+                if (activeNoteId === null) {
+                    // POST Request
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ note: text })
+                    });
+                    if (!res.ok) throw new Error('Failed to create note');
+                    const msg = await res.text();
+                    showToast(msg || 'Note added');
+                } else {
+                    // PUT Request
+                    const res = await fetch(API_URL, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: activeNoteId, note: text })
+                    });
+                    if (!res.ok) throw new Error('Failed to update note');
+                    const msg = await res.text();
+                    showToast(msg || 'Note updated');
+                }
+
+                closeEditor();
+                await fetchNotes();
+            } catch (error) {
+                console.error(error);
+                showToast('Error saving note');
+            }
+        }
+
+        // DELETE (DELETE /)
+        async function deleteNote(id) {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: Number(id) })
+                });
+                if (!res.ok) throw new Error('Failed to delete note');
+                const msg = await res.text();
+                showToast(msg || 'Note deleted');
+                if (activeNoteId === Number(id)) {
+                    closeEditor();
+                }
+                await fetchNotes();
+            } catch (error) {
+                console.error(error);
+                showToast('Error deleting note');
+            }
+        }
+
+        // Event Listeners
+        fabCreate.addEventListener('click', () => openEditor(null));
+        closeEditorBtn.addEventListener('click', closeEditor);
+        saveNoteBtn.addEventListener('click', saveNote);
+
+        modalDeleteBtn.addEventListener('click', () => {
+            if (activeNoteId !== null) {
+                deleteNote(activeNoteId);
+            }
+        });
+
+        editorOverlay.addEventListener('click', (e) => {
+            if (e.target === editorOverlay) closeEditor();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && editorOverlay.classList.contains('active')) {
+                closeEditor();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && editorOverlay.classList.contains('active')) {
+                saveNote();
+            }
+        });
+
+        notesGrid.addEventListener('click', (e) => {
+            const deleteBtn = e.target.closest('[data-delete-id]');
+            if (deleteBtn) {
+                e.stopPropagation();
+                deleteNote(deleteBtn.dataset.deleteId);
+                return;
+            }
+
+            const card = e.target.closest('.note-item');
+            if (card) {
+                const id = Number(card.dataset.id);
+                const noteObj = allNotes.find(n => n.id === id);
+                if (noteObj) openEditor(noteObj);
+            }
+        });
+
+        searchInput.addEventListener('input', renderNotes);
+
+        toggleViewBtn.addEventListener('click', () => {
+            isListView = !isListView;
+            notesGrid.classList.toggle('list-view', isListView);
+        });
+
+        // Initial Load
+        fetchNotes();
+    </script>
+</body>
+</html>
